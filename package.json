@@ -1,0 +1,22 @@
+{
+  "name": "transcriber",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "GPL3",
+  "scripts": {
+    "watch": "./node_modules/.bin/npx watchify clientside.js -o bundle.js",
+    "start": "./node_modules/.bin/electron ."
+  },
+  "devDependencies": {
+    "browserify": "^16.5.0",
+    "electron": "^6.0.12",
+    "npx": "^10.2.0",
+    "watchify": "^3.11.1"
+  },
+  "dependencies": {
+    "lodash": "^4.17.15",
+    "pitchy": "^1.0.4",
+    "three": "^0.109.0",
+    "tone": "^13.8.25"
+  }
+}
