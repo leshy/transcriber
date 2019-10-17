@@ -78,7 +78,7 @@ class SignalLineColor extends SignalLine {
     _.times(this.length, index => {
       const normalized = data[index] / 128 || 0
       this.positions[index * 3 + 1] = normalized * this.stretch
-      color.setHSL(0.75 - normalized, 1, normalized)
+      color.setHSL(0.75 - normalized, 1, normalized - 0.1)
       colors.push(color.r, color.g, color.b)
     })
 
