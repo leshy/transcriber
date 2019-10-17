@@ -24,6 +24,12 @@ function _extends() {
   return _extends.apply(this, arguments);
 }
 
+function _inheritsLoose(subClass, superClass) {
+  subClass.prototype = Object.create(superClass.prototype);
+  subClass.prototype.constructor = subClass;
+  subClass.__proto__ = superClass;
+}
+
 var POINTS = 256;
 var env = {};
 
@@ -55,22 +61,30 @@ function () {
 
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3)); // draw range
 
-    geometry.setDrawRange(0, length - 1); // material
-
-    var material = this.material = new THREE.LineBasicMaterial(_extends({
-      color: 0xffffff,
-      linewidth: 2
-    }, opts));
+    geometry.setDrawRange(0, length - 1);
+    var material = this.material = this.initMaterial(opts);
     this.obj = new THREE.Line(geometry, material);
   }
 
   var _proto = SignalLine.prototype;
 
+  _proto.initMaterial = function initMaterial(opts) {
+    if (opts === void 0) {
+      opts = {};
+    }
+
+    return new THREE.LineBasicMaterial(_extends({
+      color: 0xffffff,
+      linewidth: 2
+    }, opts));
+  };
+
   _proto.display = function display(data) {
     var _this = this;
 
     _.times(this.length, function (index) {
-      _this.positions[index * 3 + 1] = (data[index] / 128 || 0) * _this.stretch;
+      var normalized = data[index] / 128 || 0;
+      _this.positions[index * 3 + 1] = normalized * _this.stretch;
     }); // @ts-ignore
 
 
@@ -85,33 +99,88 @@ function () {
   return SignalLine;
 }();
 
-var LineX = function LineX(positions, opts) {
-  var geometry = new THREE.BufferGeometry();
-  geometry.addAttribute('position', new THREE.BufferAttribute(this.positions = Float32Array.from(positions), 3));
-  var material = new THREE.LineBasicMaterial(_extends({
-    color: 0xffffff,
-    linewidth: 2
-  }, opts));
-  this.obj = new THREE.Line(geometry, material);
-};
+var SignalLineColor =
+/*#__PURE__*/
+function (_SignalLine) {
+  _inheritsLoose(SignalLineColor, _SignalLine);
+
+  function SignalLineColor() {
+    return _SignalLine.apply(this, arguments) || this;
+  }
+
+  var _proto2 = SignalLineColor.prototype;
+
+  _proto2.display = function display(data) {
+    var _this2 = this;
+
+    var colors = [];
+    var color = new THREE.Color();
+
+    _.times(this.length, function (index) {
+      var normalized = data[index] / 128 || 0;
+      _this2.positions[index * 3 + 1] = normalized * _this2.stretch;
+      color.setHSL(0.75 - normalized, 1, normalized);
+      colors.push(color.r, color.g, color.b);
+    }); // @ts-ignore
+    // geometry4.addAttribute( 'color', new THREE.Float32BufferAttribute( colors1, 3 ) );
+
+
+    this.obj.geometry.addAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); // @ts-ignore
+
+    this.obj.geometry.attributes.position.needsUpdate = true;
+  };
+
+  _proto2.initMaterial = function initMaterial(opts) {
+    if (opts === void 0) {
+      opts = {};
+    }
+
+    return new THREE.LineBasicMaterial(_extends({
+      color: 0xffffff,
+      linewidth: 2,
+      vertexColors: THREE.VertexColors
+    }, opts));
+  };
+
+  return SignalLineColor;
+}(SignalLine); // class LineX {
+//   positions: Float32Array
+//   public obj: THREE.Line
+//   constructor(positions: Array<number>, opts?: { color?: number }) {
+//     const geometry = new THREE.BufferGeometry()
+//     geometry.addAttribute(
+//       'position',
+//       new THREE.BufferAttribute(
+//         (this.positions = Float32Array.from(positions)),
+//         3,
+//       ),
+//     )
+//     var material = new THREE.LineBasicMaterial({
+//       color: 0xffffff,
+//       linewidth: 2,
+//       ...opts,
+//     })
+//     this.obj = new THREE.Line(geometry, material)
+//   }
+// }
+
 
 var FFT =
 /*#__PURE__*/
 function () {
   function FFT() {
     this.signalLines = [];
-    this.obj = new THREE.Object3D();
-    this.obj.add(new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
-      color: 0x555555
-    }).obj);
+    this.obj = new THREE.Object3D(); // this.obj.add(
+    //   new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
+    //     color: 0x555555,
+    //   }).obj,
+    // )
   }
 
-  var _proto2 = FFT.prototype;
+  var _proto3 = FFT.prototype;
 
-  _proto2.display = function display(data) {
-    var signalLine = new SignalLine(POINTS, 3, {
-      color: 0xaaaaaa
-    });
+  _proto3.display = function display(data) {
+    var signalLine = new SignalLineColor(POINTS, 3);
     signalLine.display(data);
 
     if (this.signalLines.length > 100) {
