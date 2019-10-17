@@ -13,19 +13,14 @@ const env: {
   scene?: THREE.Scene
 } = {}
 
-// var camera, scene, renderer
-// var linefft, linewave, mesh
-
-class Line {
+class SignalLine {
   length: number
-  pos: number
   stretch: number
   positions: Float32Array
-  public line: THREE.Line
+  public obj: THREE.Line
 
-  constructor(length: number, pos: number = 0, stretch: number = 1) {
+  constructor(length: number, stretch: number = 1) {
     this.length = length
-    this.pos = pos
     this.stretch = stretch
 
     // geometry
@@ -36,8 +31,8 @@ class Line {
     this.positions = positions
 
     _.times(length, (index: number) => {
-      positions[index * 3] = (index - length / 2) / (length / 20)
-      positions[index * 3 + 1] = pos
+      positions[index * 3] = (1 / length) * index
+      positions[index * 3 + 1] = 0
       positions[index * 3 + 2] = 0
     })
 
@@ -51,16 +46,58 @@ class Line {
       color: 0xffffff,
       linewidth: 2,
     })
-    this.line = new THREE.Line(geometry, material)
+    this.obj = new THREE.Line(geometry, material)
   }
 
   display(data: Uint8Array) {
     _.times(this.length, index => {
-      this.positions[index * 3 + 1] =
-        (data[index] / 128 || 0) * this.stretch + this.pos
+      this.positions[index * 3 + 1] = (data[index] / 128 || 0) * this.stretch
     })
     // @ts-ignore
-    this.line.geometry.attributes.position.needsUpdate = true
+    this.obj.geometry.attributes.position.needsUpdate = true
+  }
+}
+
+class LineX {
+  positions: Float32Array
+  public obj: THREE.Line
+
+  constructor(positions: Array<number>, opts?: { color?: number }) {
+    const geometry = new THREE.BufferGeometry()
+    geometry.addAttribute(
+      'position',
+      new THREE.BufferAttribute(
+        (this.positions = Float32Array.from(positions)),
+        3,
+      ),
+    )
+
+    var material = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      linewidth: 2,
+      ...opts,
+    })
+
+    this.obj = new THREE.Line(geometry, material)
+  }
+}
+
+class FFT {
+  public obj: THREE.Object3D
+  private centerLine: LineX
+  private signalLine: SignalLine
+
+  constructor() {
+    const obj = (this.obj = new THREE.Object3D())
+    this.centerLine = new LineX([0, 0, 0, 1, 0, 0], { color: 0xff0000 })
+    this.signalLine = new SignalLine(POINTS, 3)
+
+    obj.add(this.signalLine.obj)
+    obj.add(this.centerLine.obj)
+  }
+
+  display(data: Uint8Array) {
+    this.signalLine.display(data)
   }
 }
 
@@ -81,15 +118,21 @@ function init() {
   // scene.add( mesh );
 
   // line
-  linefft = new Line(POINTS, 3, 1)
-  linewave = new Line(POINTS, -5, 2)
-  env.scene.add(linewave.line)
-  env.scene.add(linefft.line)
+  linewave = new SignalLine(POINTS, -3)
+  linewave.obj.scale.set(20, 1, 1)
+  linewave.obj.position.set(-10, 0, 0)
 
+  fft = new FFT()
+
+  fft.obj.scale.set(20, 1, 1)
+  fft.obj.position.set(-10, 0, 0)
+
+  env.scene.add(linewave.obj)
+  env.scene.add(fft.obj)
   const canvas = document.querySelector('#c')
 
   // @ts-ignore
-  env.renderer = new THREE.WebGLRenderer({ canvas, antialias: true })
+  env.renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
   // @ts-ignore
   env.renderer.setSize(window.innerWidth, window.innerHeight)
   // @ts-ignore
@@ -139,7 +182,7 @@ function audiotest() {
         linewave.display(dataArray)
 
         analyser.getByteFrequencyData(dataArray)
-        linefft.display(dataArray)
+        fft.display(dataArray)
 
         var fdata = new Float32Array(analyser.fftSize)
         analyser.getFloatTimeDomainData(fdata)
@@ -181,12 +224,9 @@ function audiotest() {
     })
 }
 
-let line = new Line(1, 2, 3)
-console.log(line)
-
 const freqDisplay = document.querySelector('#freq')
-let linefft: Line
-let linewave: Line
+let fft: FFT
+let linewave: SignalLine
 
 init()
 animate()
