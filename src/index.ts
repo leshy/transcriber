@@ -18,13 +18,15 @@ class SignalLine {
   stretch: number
   positions: Float32Array
   public obj: THREE.Line
+  private geometry: THREE.BufferGeometry
+  private material: THREE.LineBasicMaterial
 
-  constructor(length: number, stretch: number = 1) {
+  constructor(length: number, stretch: number = 1, opts = {}) {
     this.length = length
     this.stretch = stretch
 
     // geometry
-    const geometry = new THREE.BufferGeometry()
+    const geometry = (this.geometry = new THREE.BufferGeometry())
 
     // attributes
     const positions = new Float32Array(length * 3)
@@ -42,10 +44,11 @@ class SignalLine {
     geometry.setDrawRange(0, length - 1)
 
     // material
-    var material = new THREE.LineBasicMaterial({
+    var material = (this.material = new THREE.LineBasicMaterial({
       color: 0xffffff,
       linewidth: 2,
-    })
+      ...opts,
+    }))
     this.obj = new THREE.Line(geometry, material)
   }
 
@@ -55,6 +58,11 @@ class SignalLine {
     })
     // @ts-ignore
     this.obj.geometry.attributes.position.needsUpdate = true
+  }
+
+  dispose() {
+    this.geometry.dispose()
+    this.material.dispose()
   }
 }
 
@@ -84,20 +92,36 @@ class LineX {
 
 class FFT {
   public obj: THREE.Object3D
-  private centerLine: LineX
-  private signalLine: SignalLine
+  private signalLines: SignalLine[] = []
 
   constructor() {
-    const obj = (this.obj = new THREE.Object3D())
-    this.centerLine = new LineX([0, 0, 0, 1, 0, 0], { color: 0xff0000 })
-    this.signalLine = new SignalLine(POINTS, 3)
-
-    obj.add(this.signalLine.obj)
-    obj.add(this.centerLine.obj)
+    this.obj = new THREE.Object3D()
+    this.obj.add(
+      new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
+        color: 0x555555,
+      }).obj,
+    )
   }
 
   display(data: Uint8Array) {
-    this.signalLine.display(data)
+    const signalLine = new SignalLine(POINTS, 3, { color: 0xaaaaaa })
+    signalLine.display(data)
+
+    if (this.signalLines.length > 100) {
+      const toDelete = this.signalLines.shift()
+      if (toDelete) {
+        this.obj.remove(toDelete.obj)
+        toDelete.dispose()
+      }
+    }
+
+    _.each(this.signalLines, line => {
+      line.obj.translateY(0.1)
+      line.obj.translateZ(-0.05)
+    })
+
+    this.signalLines.push(signalLine)
+    this.obj.add(signalLine.obj)
   }
 }
 
@@ -106,7 +130,7 @@ function init() {
     70,
     window.innerWidth / window.innerHeight,
     0.01,
-    13,
+    30,
   )
   env.camera.position.z = 10
 
@@ -118,14 +142,14 @@ function init() {
   // scene.add( mesh );
 
   // line
-  linewave = new SignalLine(POINTS, -3)
+  linewave = new SignalLine(POINTS, 1, { color: 0xffffff, linewidth: 5 })
   linewave.obj.scale.set(20, 1, 1)
   linewave.obj.position.set(-10, 0, 0)
 
   fft = new FFT()
 
   fft.obj.scale.set(20, 1, 1)
-  fft.obj.position.set(-10, 0, 0)
+  fft.obj.position.set(-10, -5, 0)
 
   env.scene.add(linewave.obj)
   env.scene.add(fft.obj)
@@ -172,7 +196,7 @@ function audiotest() {
       source.connect(analyser)
 
       analyser.fftSize = POINTS * 2
-      analyser.smoothingTimeConstant = 0.7
+      analyser.smoothingTimeConstant = 0.8
 
       var bufferLength = analyser.frequencyBinCount
       var dataArray = new Uint8Array(bufferLength)
@@ -220,7 +244,7 @@ function audiotest() {
         }
       }
 
-      setInterval(sample, 10)
+      setInterval(sample, 20)
     })
 }
 
