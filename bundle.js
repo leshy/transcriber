@@ -144,12 +144,12 @@ function init() {
   // scene.add( mesh );
   // line
 
-  linewave = new SignalLine(POINTS, 1, {
+  linewave = new SignalLine(POINTS, 3, {
     color: 0xffffff,
     linewidth: 5
   });
   linewave.obj.scale.set(20, 1, 1);
-  linewave.obj.position.set(-10, 0, 0);
+  linewave.obj.position.set(-10, -3, 0);
   fft = new FFT();
   fft.obj.scale.set(20, 1, 1);
   fft.obj.position.set(-10, -5, 0);
