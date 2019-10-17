@@ -43,18 +43,22 @@ class SignalLine {
     // draw range
     geometry.setDrawRange(0, length - 1)
 
-    // material
-    var material = (this.material = new THREE.LineBasicMaterial({
+    var material = (this.material = this.initMaterial(opts))
+    this.obj = new THREE.Line(geometry, material)
+  }
+
+  initMaterial(opts = {}) {
+    return new THREE.LineBasicMaterial({
       color: 0xffffff,
       linewidth: 2,
       ...opts,
-    }))
-    this.obj = new THREE.Line(geometry, material)
+    })
   }
 
   display(data: Uint8Array) {
     _.times(this.length, index => {
-      this.positions[index * 3 + 1] = (data[index] / 128 || 0) * this.stretch
+      const normalized = data[index] / 128 || 0
+      this.positions[index * 3 + 1] = normalized * this.stretch
     })
     // @ts-ignore
     this.obj.geometry.attributes.position.needsUpdate = true
@@ -66,29 +70,62 @@ class SignalLine {
   }
 }
 
-class LineX {
-  positions: Float32Array
-  public obj: THREE.Line
+class SignalLineColor extends SignalLine {
+  display(data: Uint8Array) {
+    const colors: Array<number> = []
+    let color = new THREE.Color()
 
-  constructor(positions: Array<number>, opts?: { color?: number }) {
-    const geometry = new THREE.BufferGeometry()
-    geometry.addAttribute(
-      'position',
-      new THREE.BufferAttribute(
-        (this.positions = Float32Array.from(positions)),
-        3,
-      ),
-    )
-
-    var material = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      linewidth: 2,
-      ...opts,
+    _.times(this.length, index => {
+      const normalized = data[index] / 128 || 0
+      this.positions[index * 3 + 1] = normalized * this.stretch
+      color.setHSL(0.75 - normalized, 1, normalized)
+      colors.push(color.r, color.g, color.b)
     })
 
-    this.obj = new THREE.Line(geometry, material)
+    // @ts-ignore
+    // geometry4.addAttribute( 'color', new THREE.Float32BufferAttribute( colors1, 3 ) );
+    this.obj.geometry.addAttribute(
+      'color',
+      new THREE.Float32BufferAttribute(colors, 3),
+    )
+
+    // @ts-ignore
+    this.obj.geometry.attributes.position.needsUpdate = true
+  }
+
+  initMaterial(opts = {}) {
+    return new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      linewidth: 2,
+      vertexColors: THREE.VertexColors,
+      ...opts,
+    })
   }
 }
+
+// class LineX {
+//   positions: Float32Array
+//   public obj: THREE.Line
+
+//   constructor(positions: Array<number>, opts?: { color?: number }) {
+//     const geometry = new THREE.BufferGeometry()
+//     geometry.addAttribute(
+//       'position',
+//       new THREE.BufferAttribute(
+//         (this.positions = Float32Array.from(positions)),
+//         3,
+//       ),
+//     )
+
+//     var material = new THREE.LineBasicMaterial({
+//       color: 0xffffff,
+//       linewidth: 2,
+//       ...opts,
+//     })
+
+//     this.obj = new THREE.Line(geometry, material)
+//   }
+// }
 
 class FFT {
   public obj: THREE.Object3D
@@ -96,15 +133,16 @@ class FFT {
 
   constructor() {
     this.obj = new THREE.Object3D()
-    this.obj.add(
-      new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
-        color: 0x555555,
-      }).obj,
-    )
+    // this.obj.add(
+    //   new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
+    //     color: 0x555555,
+    //   }).obj,
+    // )
   }
 
   display(data: Uint8Array) {
-    const signalLine = new SignalLine(POINTS, 3, { color: 0xaaaaaa })
+    const signalLine = new SignalLineColor(POINTS, 3)
+
     signalLine.display(data)
 
     if (this.signalLines.length > 100) {
