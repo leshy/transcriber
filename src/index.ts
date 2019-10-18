@@ -13,17 +13,22 @@ const env: {
   scene?: THREE.Scene
 } = {}
 
+type MaterialOpts = {
+  linewidth?: number
+  color?: number
+}
+
 class SignalLine {
   length: number
-  stretch: number
   positions: Float32Array
   public obj: THREE.Line
   private geometry: THREE.BufferGeometry
   private material: THREE.LineBasicMaterial
+  opts: { material: {} }
 
-  constructor(length: number, stretch: number = 1, opts = {}) {
+  constructor(length: number, opts: { material?: MaterialOpts }) {
     this.length = length
-    this.stretch = stretch
+    this.opts = this.initOpts(opts)
 
     // geometry
     const geometry = (this.geometry = new THREE.BufferGeometry())
@@ -43,7 +48,7 @@ class SignalLine {
     // draw range
     geometry.setDrawRange(0, length - 1)
 
-    var material = (this.material = this.initMaterial(opts))
+    var material = (this.material = this.initMaterial(opts.material))
     this.obj = new THREE.Line(geometry, material)
   }
 
@@ -55,10 +60,17 @@ class SignalLine {
     })
   }
 
+  initOpts(opts = {}) {
+    return {
+      material: {},
+      ...opts,
+    }
+  }
+
   display(data: Uint8Array) {
     _.times(this.length, index => {
-      const normalized = data[index] / 128 || 0
-      this.positions[index * 3 + 1] = normalized * this.stretch
+      const normalized = data[index] / 256 || 0
+      this.positions[index * 3 + 1] = normalized
     })
     // @ts-ignore
     this.obj.geometry.attributes.position.needsUpdate = true
@@ -71,19 +83,34 @@ class SignalLine {
 }
 
 class SignalLineColor extends SignalLine {
+  cutoff: number
+
+  constructor(
+    length: number,
+    opts: { cutoff?: number; material?: MaterialOpts } = {},
+  ) {
+    super(length, opts)
+    this.cutoff = opts.cutoff || 0.9
+  }
+
   display(data: Uint8Array) {
     const colors: Array<number> = []
     let color = new THREE.Color()
 
     _.times(this.length, index => {
-      const normalized = data[index] / 128 || 0
-      this.positions[index * 3 + 1] = normalized * this.stretch
-      color.setHSL(0.75 - normalized, 1, normalized)
-      colors.push(color.r, color.g, color.b)
+      const normalized = data[index] / 256 || 0
+
+      this.positions[index * 3 + 1] = normalized
+
+      if (normalized > this.cutoff) {
+        colors.push(1, 0, 0)
+      } else {
+        color.setHSL(normalized, 0.9, normalized)
+        colors.push(color.r, color.g, color.b)
+      }
     })
 
     // @ts-ignore
-    // geometry4.addAttribute( 'color', new THREE.Float32BufferAttribute( colors1, 3 ) );
     this.obj.geometry.addAttribute(
       'color',
       new THREE.Float32BufferAttribute(colors, 3),
@@ -93,55 +120,139 @@ class SignalLineColor extends SignalLine {
     this.obj.geometry.attributes.position.needsUpdate = true
   }
 
-  initMaterial(opts = {}) {
+  initMaterial() {
     return new THREE.LineBasicMaterial({
       color: 0xffffff,
       linewidth: 2,
       vertexColors: THREE.VertexColors,
-      ...opts,
+      ...this.opts.material,
     })
   }
 }
 
-// class LineX {
-//   positions: Float32Array
-//   public obj: THREE.Line
+class Line {
+  positions: Float32Array
+  public obj: THREE.Line
+  private opts: { material: {} }
+  constructor(
+    positions: Array<number>,
+    opts: { material: { color?: number } },
+  ) {
+    this.opts = {
+      material: {},
+      ...opts,
+    }
 
-//   constructor(positions: Array<number>, opts?: { color?: number }) {
-//     const geometry = new THREE.BufferGeometry()
-//     geometry.addAttribute(
-//       'position',
-//       new THREE.BufferAttribute(
-//         (this.positions = Float32Array.from(positions)),
-//         3,
-//       ),
-//     )
+    const geometry = new THREE.BufferGeometry()
+    geometry.addAttribute(
+      'position',
+      new THREE.BufferAttribute(
+        (this.positions = Float32Array.from(positions)),
+        3,
+      ),
+    )
 
-//     var material = new THREE.LineBasicMaterial({
-//       color: 0xffffff,
-//       linewidth: 2,
-//       ...opts,
-//     })
+    var material = new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      linewidth: 2,
+      ...this.opts.material,
+    })
 
-//     this.obj = new THREE.Line(geometry, material)
-//   }
-// }
+    this.obj = new THREE.Line(geometry, material)
+  }
+}
 
 class FFT {
   public obj: THREE.Object3D
-  private signalLines: SignalLine[] = []
+  private _cutoff: number
+
+  private history: FFThistory
+  private signalLine: SignalLineColor
+  private cutoffLine: Line
 
   constructor() {
+    this._cutoff = 0.8
     this.obj = new THREE.Object3D()
-    // this.obj.add(
-    //   new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
-    //     color: 0x555555,
-    //   }).obj,
-    // )
+
+    this.signalLine = new SignalLineColor(POINTS, {
+      cutoff: this.cutoff,
+      material: { linewidth: 15 },
+    })
+
+    this.signalLine.obj.scale.set(1, 3, 1)
+    this.signalLine.obj.translateY(-0.1)
+    this.signalLine.obj.translateZ(0.05)
+    this.obj.add(this.signalLine.obj)
+
+    this.history = new FFThistory(this)
+    this.obj.add(this.history.obj)
+
+    this.obj.add(
+      new Line([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
+        material: {
+          color: 0x555555,
+        },
+      }).obj,
+    )
+
+    this.cutoffLine = new Line([0, 0, 0, 1, 0, 0], {
+      material: { color: 0xff0000 },
+    })
+
+    this.cutoffLine.obj.scale.set(1, 3, 5)
+    this.cutoffLine.obj.translateY(this.cutoff * 3 - 0.1)
+
+    this.obj.add(this.cutoffLine.obj)
+  }
+
+  get cutoff(): number {
+    return this._cutoff
+  }
+
+  set cutoff(newCutoff: number) {
+    this._cutoff = newCutoff
+    this.signalLine.cutoff = this._cutoff
   }
 
   display(data: Uint8Array) {
-    const signalLine = new SignalLineColor(POINTS, 3)
+    this.signalLine.display(data)
+    this.history.display(data)
+  }
+}
+
+class WaveView {
+  public obj: THREE.Object3D
+  private linewave: SignalLine
+  constructor() {
+    this.obj = new THREE.Object3D()
+
+    this.linewave = new SignalLine(POINTS, {
+      material: { color: 0xdddddd, linewidth: 5 },
+    })
+    this.linewave.obj.scale.set(20, 2, 1)
+    this.linewave.obj.position.set(-10, 0, 0)
+
+    this.obj.add(this.linewave.obj)
+  }
+
+  display(data: Uint8Array) {
+    this.linewave.display(data)
+  }
+}
+
+class FFThistory {
+  public obj: THREE.Object3D
+  private signalLines: SignalLineColor[] = []
+  private fft: FFT
+
+  constructor(fft: FFT) {
+    this.fft = fft
+    this.obj = new THREE.Object3D()
+  }
+
+  display(data: Uint8Array) {
+    const signalLine = new SignalLineColor(POINTS, { cutoff: this.fft.cutoff })
+    signalLine.obj.scale.set(1, 3, 1)
 
     signalLine.display(data)
 
@@ -180,16 +291,14 @@ function init() {
   // scene.add( mesh );
 
   // line
-  linewave = new SignalLine(POINTS, 3, { color: 0xffffff, linewidth: 5 })
-  linewave.obj.scale.set(20, 1, 1)
-  linewave.obj.position.set(-10, -3, 0)
+  waveView = new WaveView()
 
   fft = new FFT()
 
   fft.obj.scale.set(20, 1, 1)
   fft.obj.position.set(-10, -5, 0)
 
-  env.scene.add(linewave.obj)
+  env.scene.add(waveView.obj)
   env.scene.add(fft.obj)
   const canvas = document.querySelector('#c')
 
@@ -234,14 +343,14 @@ function audiotest() {
       source.connect(analyser)
 
       analyser.fftSize = POINTS * 2
-      analyser.smoothingTimeConstant = 0.8
+      analyser.smoothingTimeConstant = 0.5
 
       var bufferLength = analyser.frequencyBinCount
       var dataArray = new Uint8Array(bufferLength)
 
       function sample() {
         analyser.getByteTimeDomainData(dataArray)
-        linewave.display(dataArray)
+        waveView.display(dataArray)
 
         analyser.getByteFrequencyData(dataArray)
         fft.display(dataArray)
@@ -288,7 +397,7 @@ function audiotest() {
 
 const freqDisplay = document.querySelector('#freq')
 let fft: FFT
-let linewave: SignalLine
+let waveView: WaveView
 
 init()
 animate()
