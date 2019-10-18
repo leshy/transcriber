@@ -57,7 +57,7 @@ class SignalLine {
 
   display(data: Uint8Array) {
     _.times(this.length, index => {
-      const normalized = data[index] / 128 || 0
+      const normalized = data[index] / 256 || 0
       this.positions[index * 3 + 1] = normalized * this.stretch
     })
     // @ts-ignore
@@ -76,14 +76,19 @@ class SignalLineColor extends SignalLine {
     let color = new THREE.Color()
 
     _.times(this.length, index => {
-      const normalized = data[index] / 128 || 0
+      const normalized = data[index] / 256 || 0
+
       this.positions[index * 3 + 1] = normalized * this.stretch
-      color.setHSL(0.75 - normalized, 1, normalized - 0.1)
-      colors.push(color.r, color.g, color.b)
+
+      if (normalized > 0.8) {
+        colors.push(1, 0, 0)
+      } else {
+        color.setHSL(normalized, 0.9, normalized)
+        colors.push(color.r, color.g, color.b)
+      }
     })
 
     // @ts-ignore
-    // geometry4.addAttribute( 'color', new THREE.Float32BufferAttribute( colors1, 3 ) );
     this.obj.geometry.addAttribute(
       'color',
       new THREE.Float32BufferAttribute(colors, 3),
@@ -129,10 +134,19 @@ class SignalLineColor extends SignalLine {
 
 class FFT {
   public obj: THREE.Object3D
-  private signalLines: SignalLine[] = []
-
+  private history: FFThistory
+  private signalLine: SignalLine
   constructor() {
     this.obj = new THREE.Object3D()
+
+    this.signalLine = new SignalLineColor(POINTS, 3, { linewidth: 15 })
+    this.signalLine.obj.translateY(-0.1)
+    this.signalLine.obj.translateZ(0.05)
+    this.obj.add(this.signalLine.obj)
+
+    this.history = new FFThistory()
+    this.obj.add(this.history.obj)
+
     // this.obj.add(
     //   new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
     //     color: 0x555555,
@@ -141,8 +155,20 @@ class FFT {
   }
 
   display(data: Uint8Array) {
-    const signalLine = new SignalLineColor(POINTS, 3)
+    this.signalLine.display(data)
+    this.history.display(data)
+  }
+}
 
+class FFThistory {
+  public obj: THREE.Object3D
+  private signalLines: SignalLineColor[] = []
+  constructor() {
+    this.obj = new THREE.Object3D()
+  }
+
+  display(data: Uint8Array) {
+    const signalLine = new SignalLineColor(POINTS, 3)
     signalLine.display(data)
 
     if (this.signalLines.length > 100) {
@@ -180,7 +206,7 @@ function init() {
   // scene.add( mesh );
 
   // line
-  linewave = new SignalLine(POINTS, 3, { color: 0xffffff, linewidth: 5 })
+  linewave = new SignalLine(POINTS, 6, { color: 0xdddddd, linewidth: 3 })
   linewave.obj.scale.set(20, 1, 1)
   linewave.obj.position.set(-10, -3, 0)
 
@@ -234,7 +260,7 @@ function audiotest() {
       source.connect(analyser)
 
       analyser.fftSize = POINTS * 2
-      analyser.smoothingTimeConstant = 0.8
+      analyser.smoothingTimeConstant = 0.5
 
       var bufferLength = analyser.frequencyBinCount
       var dataArray = new Uint8Array(bufferLength)
