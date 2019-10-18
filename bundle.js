@@ -6,6 +6,22 @@ var THREE = require('three');
 var tone = require('tone');
 var pitchy = require('pitchy');
 
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
 function _extends() {
   _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
@@ -36,17 +52,9 @@ var env = {};
 var SignalLine =
 /*#__PURE__*/
 function () {
-  function SignalLine(length, stretch, opts) {
-    if (stretch === void 0) {
-      stretch = 1;
-    }
-
-    if (opts === void 0) {
-      opts = {};
-    }
-
+  function SignalLine(length, opts) {
     this.length = length;
-    this.stretch = stretch; // geometry
+    this.opts = this.initOpts(opts); // geometry
 
     var geometry = this.geometry = new THREE.BufferGeometry(); // attributes
 
@@ -62,7 +70,7 @@ function () {
     geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3)); // draw range
 
     geometry.setDrawRange(0, length - 1);
-    var material = this.material = this.initMaterial(opts);
+    var material = this.material = this.initMaterial(opts.material);
     this.obj = new THREE.Line(geometry, material);
   }
 
@@ -79,12 +87,22 @@ function () {
     }, opts));
   };
 
+  _proto.initOpts = function initOpts(opts) {
+    if (opts === void 0) {
+      opts = {};
+    }
+
+    return _extends({
+      material: {}
+    }, opts);
+  };
+
   _proto.display = function display(data) {
     var _this = this;
 
     _.times(this.length, function (index) {
-      var normalized = data[index] / 128 || 0;
-      _this.positions[index * 3 + 1] = normalized * _this.stretch;
+      var normalized = data[index] / 256 || 0;
+      _this.positions[index * 3 + 1] = normalized;
     }); // @ts-ignore
 
 
@@ -104,25 +122,37 @@ var SignalLineColor =
 function (_SignalLine) {
   _inheritsLoose(SignalLineColor, _SignalLine);
 
-  function SignalLineColor() {
-    return _SignalLine.apply(this, arguments) || this;
+  function SignalLineColor(length, opts) {
+    var _this2;
+
+    if (opts === void 0) {
+      opts = {};
+    }
+
+    _this2 = _SignalLine.call(this, length, opts) || this;
+    _this2.cutoff = opts.cutoff || 0.9;
+    return _this2;
   }
 
   var _proto2 = SignalLineColor.prototype;
 
   _proto2.display = function display(data) {
-    var _this2 = this;
+    var _this3 = this;
 
     var colors = [];
     var color = new THREE.Color();
 
     _.times(this.length, function (index) {
-      var normalized = data[index] / 128 || 0;
-      _this2.positions[index * 3 + 1] = normalized * _this2.stretch;
-      color.setHSL(0.75 - normalized, 1, normalized);
-      colors.push(color.r, color.g, color.b);
+      var normalized = data[index] / 256 || 0;
+      _this3.positions[index * 3 + 1] = normalized;
+
+      if (normalized > _this3.cutoff) {
+        colors.push(1, 0, 0);
+      } else {
+        color.setHSL(normalized, 0.9, normalized);
+        colors.push(color.r, color.g, color.b);
+      }
     }); // @ts-ignore
-    // geometry4.addAttribute( 'color', new THREE.Float32BufferAttribute( colors1, 3 ) );
 
 
     this.obj.geometry.addAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); // @ts-ignore
@@ -130,57 +160,125 @@ function (_SignalLine) {
     this.obj.geometry.attributes.position.needsUpdate = true;
   };
 
-  _proto2.initMaterial = function initMaterial(opts) {
-    if (opts === void 0) {
-      opts = {};
-    }
-
+  _proto2.initMaterial = function initMaterial() {
     return new THREE.LineBasicMaterial(_extends({
       color: 0xffffff,
       linewidth: 2,
       vertexColors: THREE.VertexColors
-    }, opts));
+    }, this.opts.material));
   };
 
   return SignalLineColor;
-}(SignalLine); // class LineX {
-//   positions: Float32Array
-//   public obj: THREE.Line
-//   constructor(positions: Array<number>, opts?: { color?: number }) {
-//     const geometry = new THREE.BufferGeometry()
-//     geometry.addAttribute(
-//       'position',
-//       new THREE.BufferAttribute(
-//         (this.positions = Float32Array.from(positions)),
-//         3,
-//       ),
-//     )
-//     var material = new THREE.LineBasicMaterial({
-//       color: 0xffffff,
-//       linewidth: 2,
-//       ...opts,
-//     })
-//     this.obj = new THREE.Line(geometry, material)
-//   }
-// }
+}(SignalLine);
 
+var Line = function Line(positions, opts) {
+  this.opts = _extends({
+    material: {}
+  }, opts);
+  var geometry = new THREE.BufferGeometry();
+  geometry.addAttribute('position', new THREE.BufferAttribute(this.positions = Float32Array.from(positions), 3));
+  var material = new THREE.LineBasicMaterial(_extends({
+    color: 0xffffff,
+    linewidth: 2
+  }, this.opts.material));
+  this.obj = new THREE.Line(geometry, material);
+};
 
 var FFT =
 /*#__PURE__*/
 function () {
   function FFT() {
-    this.signalLines = [];
-    this.obj = new THREE.Object3D(); // this.obj.add(
-    //   new LineX([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
-    //     color: 0x555555,
-    //   }).obj,
-    // )
+    this._cutoff = 0.8;
+    this.obj = new THREE.Object3D();
+    this.signalLine = new SignalLineColor(POINTS, {
+      cutoff: this.cutoff,
+      material: {
+        linewidth: 15
+      }
+    });
+    this.signalLine.obj.scale.set(1, 3, 1);
+    this.signalLine.obj.translateY(-0.1);
+    this.signalLine.obj.translateZ(0.05);
+    this.obj.add(this.signalLine.obj);
+    this.history = new FFThistory(this);
+    this.obj.add(this.history.obj);
+    this.obj.add(new Line([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
+      material: {
+        color: 0x555555
+      }
+    }).obj);
+    this.cutoffLine = new Line([0, 0, 0, 1, 0, 0], {
+      material: {
+        color: 0xff0000
+      }
+    });
+    this.cutoffLine.obj.scale.set(1, 3, 5);
+    this.cutoffLine.obj.translateY(this.cutoff * 3 - 0.1);
+    this.obj.add(this.cutoffLine.obj);
   }
 
   var _proto3 = FFT.prototype;
 
   _proto3.display = function display(data) {
-    var signalLine = new SignalLineColor(POINTS, 3);
+    this.signalLine.display(data);
+    this.history.display(data);
+  };
+
+  _createClass(FFT, [{
+    key: "cutoff",
+    get: function get() {
+      return this._cutoff;
+    },
+    set: function set(newCutoff) {
+      this._cutoff = newCutoff;
+      this.signalLine.cutoff = this._cutoff;
+    }
+  }]);
+
+  return FFT;
+}();
+
+var WaveView =
+/*#__PURE__*/
+function () {
+  function WaveView() {
+    this.obj = new THREE.Object3D();
+    this.linewave = new SignalLine(POINTS, {
+      material: {
+        color: 0xdddddd,
+        linewidth: 5
+      }
+    });
+    this.linewave.obj.scale.set(20, 2, 1);
+    this.linewave.obj.position.set(-10, 0, 0);
+    this.obj.add(this.linewave.obj);
+  }
+
+  var _proto4 = WaveView.prototype;
+
+  _proto4.display = function display(data) {
+    this.linewave.display(data);
+  };
+
+  return WaveView;
+}();
+
+var FFThistory =
+/*#__PURE__*/
+function () {
+  function FFThistory(fft) {
+    this.signalLines = [];
+    this.fft = fft;
+    this.obj = new THREE.Object3D();
+  }
+
+  var _proto5 = FFThistory.prototype;
+
+  _proto5.display = function display(data) {
+    var signalLine = new SignalLineColor(POINTS, {
+      cutoff: this.fft.cutoff
+    });
+    signalLine.obj.scale.set(1, 3, 1);
     signalLine.display(data);
 
     if (this.signalLines.length > 100) {
@@ -201,7 +299,7 @@ function () {
     this.obj.add(signalLine.obj);
   };
 
-  return FFT;
+  return FFThistory;
 }();
 
 function init() {
@@ -213,16 +311,11 @@ function init() {
   // scene.add( mesh );
   // line
 
-  linewave = new SignalLine(POINTS, 3, {
-    color: 0xffffff,
-    linewidth: 5
-  });
-  linewave.obj.scale.set(20, 1, 1);
-  linewave.obj.position.set(-10, -3, 0);
+  waveView = new WaveView();
   fft = new FFT();
   fft.obj.scale.set(20, 1, 1);
   fft.obj.position.set(-10, -5, 0);
-  env.scene.add(linewave.obj);
+  env.scene.add(waveView.obj);
   env.scene.add(fft.obj);
   var canvas = document.querySelector('#c'); // @ts-ignore
 
@@ -267,13 +360,13 @@ function audiotest() {
     var analyser = audioCtx.createAnalyser();
     source.connect(analyser);
     analyser.fftSize = POINTS * 2;
-    analyser.smoothingTimeConstant = 0.8;
+    analyser.smoothingTimeConstant = 0.5;
     var bufferLength = analyser.frequencyBinCount;
     var dataArray = new Uint8Array(bufferLength);
 
     function sample() {
       analyser.getByteTimeDomainData(dataArray);
-      linewave.display(dataArray);
+      waveView.display(dataArray);
       analyser.getByteFrequencyData(dataArray);
       fft.display(dataArray);
       var fdata = new Float32Array(analyser.fftSize);
@@ -313,7 +406,7 @@ var freqDisplay =
 /*#__PURE__*/
 document.querySelector('#freq');
 var fft;
-var linewave;
+var waveView;
 init();
 animate();
 audiotest();
