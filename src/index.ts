@@ -82,32 +82,37 @@ class SignalLine {
   }
 }
 
+type Painter = (value: number) => [number, number, number]
+
 class SignalLineColor extends SignalLine {
-  cutoff: number
+  private painter?: Painter
 
   constructor(
     length: number,
-    opts: { cutoff?: number; material?: MaterialOpts } = {},
+    opts: { painter?: Painter; material?: MaterialOpts } = {},
   ) {
     super(length, opts)
-    this.cutoff = opts.cutoff || 0.9
+    this.painter = opts.painter
+  }
+
+  defaultPainter(value: number) {
+    const color = new THREE.Color()
+    color.setHSL(value, 0.9, value)
+    return [color.r, color.g, color.b]
   }
 
   display(data: Uint8Array) {
     const colors: Array<number> = []
-    let color = new THREE.Color()
 
     _.times(this.length, index => {
       const normalized = data[index] / 256 || 0
 
       this.positions[index * 3 + 1] = normalized
-
-      if (normalized > this.cutoff) {
-        colors.push(1, 0, 0)
-      } else {
-        color.setHSL(normalized, 0.9, normalized)
-        colors.push(color.r, color.g, color.b)
-      }
+      colors.push(
+        ...(this.painter
+          ? this.painter(normalized)
+          : this.defaultPainter(normalized)),
+      )
     })
 
     // @ts-ignore
@@ -164,18 +169,26 @@ class Line {
 
 class FFT {
   public obj: THREE.Object3D
-  private _cutoff: number
+  private _cutoff: number = 0.8
 
   private history: FFThistory
   private signalLine: SignalLineColor
   private cutoffLine: Line
 
+  painter(value: number): [number, number, number] {
+    if (value > this._cutoff) {
+      return [1, 0, 0]
+    }
+    const color = new THREE.Color()
+    color.setHSL(value, 0.9, value)
+    return [color.r, color.g, color.b]
+  }
+
   constructor() {
-    this._cutoff = 0.8
     this.obj = new THREE.Object3D()
 
     this.signalLine = new SignalLineColor(POINTS, {
-      cutoff: this.cutoff,
+      painter: this.painter.bind(this),
       material: { linewidth: 15 },
     })
 
@@ -187,13 +200,13 @@ class FFT {
     this.history = new FFThistory(this)
     this.obj.add(this.history.obj)
 
-    this.obj.add(
-      new Line([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
-        material: {
-          color: 0x555555,
-        },
-      }).obj,
-    )
+    // this.obj.add(
+    //   new Line([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
+    //     material: {
+    //       color: 0x555555,
+    //     },
+    //   }).obj,
+    // )
 
     this.cutoffLine = new Line([0, 0, 0, 1, 0, 0], {
       material: { color: 0xff0000 },
@@ -205,18 +218,51 @@ class FFT {
     this.obj.add(this.cutoffLine.obj)
   }
 
-  get cutoff(): number {
-    return this._cutoff
-  }
-
   set cutoff(newCutoff: number) {
+    console.log(newCutoff)
+    this.cutoffLine.obj.position.set(0, newCutoff * 3, 0)
     this._cutoff = newCutoff
-    this.signalLine.cutoff = this._cutoff
   }
 
   display(data: Uint8Array) {
     this.signalLine.display(data)
     this.history.display(data)
+  }
+}
+
+class FFThistory {
+  public obj: THREE.Object3D
+  private signalLines: SignalLineColor[] = []
+  private fft: FFT
+
+  constructor(fft: FFT) {
+    this.fft = fft
+    this.obj = new THREE.Object3D()
+  }
+
+  display(data: Uint8Array) {
+    const signalLine = new SignalLineColor(POINTS, {
+      painter: this.fft.painter.bind(this.fft),
+    })
+    signalLine.obj.scale.set(1, 3, 1)
+
+    signalLine.display(data)
+
+    if (this.signalLines.length > 100) {
+      const toDelete = this.signalLines.shift()
+      if (toDelete) {
+        this.obj.remove(toDelete.obj)
+        toDelete.dispose()
+      }
+    }
+
+    _.each(this.signalLines, line => {
+      line.obj.translateY(0.1)
+      line.obj.translateZ(-0.05)
+    })
+
+    this.signalLines.push(signalLine)
+    this.obj.add(signalLine.obj)
   }
 }
 
@@ -240,40 +286,6 @@ class WaveView {
   }
 }
 
-class FFThistory {
-  public obj: THREE.Object3D
-  private signalLines: SignalLineColor[] = []
-  private fft: FFT
-
-  constructor(fft: FFT) {
-    this.fft = fft
-    this.obj = new THREE.Object3D()
-  }
-
-  display(data: Uint8Array) {
-    const signalLine = new SignalLineColor(POINTS, { cutoff: this.fft.cutoff })
-    signalLine.obj.scale.set(1, 3, 1)
-
-    signalLine.display(data)
-
-    if (this.signalLines.length > 100) {
-      const toDelete = this.signalLines.shift()
-      if (toDelete) {
-        this.obj.remove(toDelete.obj)
-        toDelete.dispose()
-      }
-    }
-
-    _.each(this.signalLines, line => {
-      line.obj.translateY(0.1)
-      line.obj.translateZ(-0.05)
-    })
-
-    this.signalLines.push(signalLine)
-    this.obj.add(signalLine.obj)
-  }
-}
-
 function init() {
   env.camera = new THREE.PerspectiveCamera(
     70,
@@ -294,6 +306,8 @@ function init() {
   waveView = new WaveView()
 
   fft = new FFT()
+
+  setInterval(() => ((fft.cutoff = Math.abs(Math.sin(Date.now() / 1000))), 50))
 
   fft.obj.scale.set(20, 1, 1)
   fft.obj.position.set(-10, -5, 0)
