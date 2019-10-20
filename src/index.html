@@ -1,0 +1,814 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2019-10-20 Sun 14:29 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>&lrm;</title>
+<meta name="generator" content="Org mode" />
+<meta name="author" content="Ivan Nikolic" />
+<style type="text/css">
+ <!--/*--><![CDATA[/*><!--*/
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #ccc;
+    box-shadow: 3px 3px 3px #eee;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: visible;
+    padding-top: 1.2em;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    background-color: white;
+    top: -10px;
+    right: 10px;
+    padding: 3px;
+    border: 1px solid black;
+  }
+  pre.src:hover:before { display: inline;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { width: 90%; }
+  /*]]>*/-->
+</style>
+<script type="text/javascript">
+/*
+@licstart  The following is the entire license notice for the
+JavaScript code in this tag.
+
+Copyright (C) 2012-2019 Free Software Foundation, Inc.
+
+The JavaScript code in this tag is free software: you can
+redistribute it and/or modify it under the terms of the GNU
+General Public License (GNU GPL) as published by the Free Software
+Foundation, either version 3 of the License, or (at your option)
+any later version.  The code is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE.  See the GNU GPL for more details.
+
+As additional permission under GNU GPL version 3 section 7, you
+may distribute non-source (e.g., minimized or compacted) forms of
+that code without the copy of the GNU GPL normally required by
+section 4, provided you include this license notice and a URL
+through which recipients can access the Corresponding Source.
+
+
+@licend  The above is the entire license notice
+for the JavaScript code in this tag.
+*/
+<!--/*--><![CDATA[/*><!--*/
+ function CodeHighlightOn(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(null != target) {
+     elem.cacheClassElem = elem.className;
+     elem.cacheClassTarget = target.className;
+     target.className = "code-highlighted";
+     elem.className   = "code-highlighted";
+   }
+ }
+ function CodeHighlightOff(elem, id)
+ {
+   var target = document.getElementById(id);
+   if(elem.cacheClassElem)
+     elem.className = elem.cacheClassElem;
+   if(elem.cacheClassTarget)
+     target.className = elem.cacheClassTarget;
+ }
+/*]]>*///-->
+</script>
+</head>
+<body>
+<div id="content">
+<p>
+import * as _ from 'lodash'
+import * as THREE from 'three'
+// @ts-ignore
+import * as tone from 'tone'
+// @ts-ignore
+import * as pitchy from 'pitchy'
+</p>
+
+<p>
+const POINTS = 256
+</p>
+
+<p>
+const env: {
+  renderer?: THREE.WebGLRenderer
+  camera?: THREE.PerspectiveCamera
+  scene?: THREE.Scene
+} = {}
+</p>
+
+<p>
+type MaterialOpts = {
+  linewidth?: number
+  color?: number
+}
+</p>
+
+<p>
+class SignalLine {
+  length: number
+  positions: Float32Array
+  public obj: THREE.Line
+  private geometry: THREE.BufferGeometry
+  private material: THREE.LineBasicMaterial
+  opts: { material: {} }
+</p>
+
+<p>
+constructor(length: number, opts: { material?: MaterialOpts }) {
+  this.length = length
+  this.opts = this.initOpts(opts)
+</p>
+
+<p>
+// geometry
+const geometry = (this.geometry = new THREE.BufferGeometry())
+</p>
+
+<p>
+// attributes
+const positions = new Float32Array(length * 3)
+this.positions = positions
+</p>
+
+<p>
+_.times(length, (index: number) =&gt; {
+  positions[index * 3] = (1 / length) * index
+  positions[index * 3 + 1] = 0
+  positions[index * 3 + 2] = 0
+})
+</p>
+
+<p>
+geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
+</p>
+
+<p>
+// draw range
+geometry.setDrawRange(0, length - 1)
+</p>
+
+<p>
+  var material = (this.material = this.initMaterial(opts.material))
+  this.obj = new THREE.Line(geometry, material)
+}
+</p>
+
+<p>
+initMaterial(opts = {}) {
+  return new THREE.LineBasicMaterial({
+    color: 0xffffff,
+    linewidth: 2,
+    &#x2026;opts,
+  })
+}
+</p>
+
+<p>
+initOpts(opts = {}) {
+  return {
+    material: {},
+    &#x2026;opts,
+  }
+}
+</p>
+
+<p>
+display(data: Uint8Array) {
+  _.times(this.length, index =&gt; {
+    const normalized = data[index] / 256 || 0
+    this.positions[index * 3 + 1] = normalized
+  })
+  // @ts-ignore
+  this.obj.geometry.attributes.position.needsUpdate = true
+}
+</p>
+
+<p>
+  dispose() {
+    this.geometry.dispose()
+    this.material.dispose()
+  }
+}
+</p>
+
+<p>
+type Painter = (value: number) =&gt; [number, number, number]
+</p>
+
+<p>
+class SignalLineColor extends SignalLine {
+  private painter?: Painter
+</p>
+
+<p>
+constructor(
+  length: number,
+  opts: { painter?: Painter; material?: MaterialOpts } = {},
+) {
+  super(length, opts)
+  this.painter = opts.painter
+}
+</p>
+
+<p>
+defaultPainter(value: number) {
+  const color = new THREE.Color()
+  color.setHSL(value, 0.9, value)
+  return [color.r, color.g, color.b]
+}
+</p>
+
+<p>
+display(data: Uint8Array) {
+  const colors: Array&lt;number&gt; = []
+</p>
+
+<p>
+_.times(this.length, index =&gt; {
+  const normalized = data[index] / 256 || 0
+</p>
+
+<p>
+this.positions[index * 3 + 1] = normalized
+colors.push(
+  &#x2026;(this.painter
+    ? this.painter(normalized)
+</p>
+<pre class="example">
+this.defaultPainter(normalized)),
+
+</pre>
+<p>
+  )
+})
+</p>
+
+<p>
+// @ts-ignore
+this.obj.geometry.addAttribute(
+  'color',
+  new THREE.Float32BufferAttribute(colors, 3),
+)
+</p>
+
+<p>
+  // @ts-ignore
+  this.obj.geometry.attributes.position.needsUpdate = true
+}
+</p>
+
+<p>
+  initMaterial() {
+    return new THREE.LineBasicMaterial({
+      color: 0xffffff,
+      linewidth: 2,
+      vertexColors: THREE.VertexColors,
+      &#x2026;this.opts.material,
+    })
+  }
+}
+</p>
+
+<p>
+class Line {
+  positions: Float32Array
+  public obj: THREE.Line
+  private opts: { material: {} }
+  constructor(positions: Array&lt;number&gt;, opts: { material: MaterialOpts }) {
+    this.opts = {
+      material: {},
+      &#x2026;opts,
+    }
+</p>
+
+<p>
+const geometry = new THREE.BufferGeometry()
+geometry.addAttribute(
+  'position',
+  new THREE.BufferAttribute(
+    (this.positions = Float32Array.from(positions)),
+    3,
+  ),
+)
+</p>
+
+<p>
+var material = new THREE.LineBasicMaterial({
+  color: 0xffffff,
+  linewidth: 2,
+  &#x2026;this.opts.material,
+})
+</p>
+
+<p>
+    this.obj = new THREE.Line(geometry, material)
+  }
+}
+</p>
+
+<p>
+class FFT {
+  public obj: THREE.Object3D
+  private _cutoff: number = 0.8
+</p>
+
+<p>
+private history: FFThistory
+private signalLine: SignalLineColor
+private cutoffLine: Line
+</p>
+
+<p>
+painter(value: number): [number, number, number] {
+  if (value &gt; this.<sub>cutoff</sub>) {
+    return [1, 0, 0]
+  }
+  const color = new THREE.Color()
+  color.setHSL(value, 0.9, value)
+  return [color.r, color.g, color.b]
+}
+</p>
+
+<p>
+constructor() {
+  this.obj = new THREE.Object3D()
+</p>
+
+<p>
+this.signalLine = new SignalLineColor(POINTS, {
+  painter: this.painter.bind(this),
+  material: { linewidth: 15 },
+})
+</p>
+
+<p>
+this.signalLine.obj.scale.set(1, 4, 1)
+this.signalLine.obj.translateY(-0.1)
+this.signalLine.obj.translateZ(0.05)
+this.obj.add(this.signalLine.obj)
+</p>
+
+<p>
+this.history = new FFThistory(this)
+this.obj.add(this.history.obj)
+</p>
+
+<p>
+<i>/ this.obj.add(
+/</i>   new Line([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
+<i>/     material: {
+/</i>       color: 0x555555,
+<i>/     },
+/</i>   }).obj,
+// )
+</p>
+
+<p>
+this.cutoffLine = new Line([0, 0, 0, 1, 0, 0], {
+  material: { color: 0xff0000, linewidth: 2 },
+})
+</p>
+
+<p>
+this.cutoffLine.obj.scale.set(1, 3, 5)
+this.cutoffLine.obj.translateY(this.cutoff * 3 - 0.1)
+</p>
+
+<p>
+  this.obj.add(this.cutoffLine.obj)
+}
+</p>
+
+<p>
+set cutoff(newCutoff: number) {
+  this.cutoffLine.obj.position.set(0, newCutoff * 3, 0)
+  this.<sub>cutoff</sub> = newCutoff
+}
+</p>
+
+<p>
+  display(data: Uint8Array) {
+    this.signalLine.display(data)
+    this.history.display(data)
+  }
+}
+</p>
+
+<p>
+class FFThistory {
+  public obj: THREE.Object3D
+  private signalLines: SignalLineColor[] = []
+  private fft: FFT
+</p>
+
+<p>
+constructor(fft: FFT) {
+  this.fft = fft
+  this.obj = new THREE.Object3D()
+}
+</p>
+
+<p>
+display(data: Uint8Array) {
+  const signalLine = new SignalLineColor(POINTS, {
+    painter: this.fft.painter.bind(this.fft),
+  })
+  signalLine.obj.scale.set(1, 4, 1)
+</p>
+
+<p>
+signalLine.display(data)
+</p>
+
+<p>
+if (this.signalLines.length &gt; 100) {
+  const toDelete = this.signalLines.shift()
+  if (toDelete) {
+    this.obj.remove(toDelete.obj)
+    toDelete.dispose()
+  }
+}
+</p>
+
+<p>
+_.each(this.signalLines, line =&gt; {
+  line.obj.translateY(0.1)
+  line.obj.translateZ(-0.05)
+})
+</p>
+
+<p>
+    this.signalLines.push(signalLine)
+    this.obj.add(signalLine.obj)
+  }
+}
+</p>
+
+<p>
+class WaveView {
+  public obj: THREE.Object3D
+  private linewave: SignalLine
+  constructor() {
+    this.obj = new THREE.Object3D()
+</p>
+
+<p>
+this.linewave = new SignalLine(POINTS, {
+  material: { color: 0xdddddd, linewidth: 5 },
+})
+this.linewave.obj.scale.set(20, 8, 1)
+this.linewave.obj.position.set(-10, -4, 0)
+</p>
+
+<p>
+  this.obj.add(this.linewave.obj)
+}
+</p>
+
+<p>
+  display(data: Uint8Array) {
+    this.linewave.display(data)
+  }
+}
+</p>
+
+<p>
+function init() {
+  env.camera = new THREE.PerspectiveCamera(
+    70,
+    window.innerWidth / window.innerHeight,
+    0.01,
+    30,
+  )
+  env.camera.position.z = 10
+</p>
+
+<p>
+env.scene = new THREE.Scene()
+</p>
+
+<p>
+<i>/ const geometry = new THREE.BoxGeometry( 2, 2, 2 );
+/</i> const material = new THREE.MeshNormalMaterial();
+<i>/ mesh = new THREE.Mesh( geometry, material );
+/</i> scene.add( mesh );
+</p>
+
+<p>
+// line
+waveView = new WaveView()
+</p>
+
+<p>
+fft = new FFT()
+</p>
+
+<p>
+setInterval(() =&gt; ((fft.cutoff = Math.abs(Math.sin(Date.now() / 1000))), 50))
+</p>
+
+<p>
+fft.obj.scale.set(20, 1, 1)
+fft.obj.position.set(-10, -5, 0)
+</p>
+
+<p>
+env.scene.add(waveView.obj)
+env.scene.add(fft.obj)
+const canvas = document.querySelector('#c')
+</p>
+
+<p>
+  // @ts-ignore
+  env.renderer = new THREE.WebGLRenderer({ canvas, antialias: false })
+  // @ts-ignore
+  env.renderer.setSize(window.innerWidth, window.innerHeight)
+  // @ts-ignore
+  document.body.appendChild(env.renderer.domElement)
+}
+</p>
+
+<p>
+window.addEventListener('resize', onWindowResize, false)
+</p>
+
+<p>
+function onWindowResize() {
+  // @ts-ignore
+  env.camera.aspect = window.innerWidth / window.innerHeight
+  // @ts-ignore
+  env.camera.updateProjectionMatrix()
+  // @ts-ignore
+  env.renderer.setSize(window.innerWidth, window.innerHeight)
+}
+function animate() {
+  requestAnimationFrame(animate)
+</p>
+
+<p>
+<i>/ mesh.rotation.x += 0.01;
+/</i> mesh.rotation.y += 0.02;
+</p>
+
+<p>
+  // @ts-ignore
+  env.renderer.render(env.scene, env.camera)
+}
+</p>
+
+<p>
+function audiotest() {
+  navigator.mediaDevices
+    .getUserMedia({ audio: true, video: false })
+    .then(stream =&gt; {
+      const FFTsampleRate = 10
+      // @ts-ignore
+      var audioCtx = new (window.AudioContext || window.webkitAudioContext)()
+      console.log(audioCtx.sampleRate / 2 + 'hz')
+</p>
+
+<p>
+var source = audioCtx.createMediaStreamSource(stream)
+var analyser = audioCtx.createAnalyser()
+source.connect(analyser)
+</p>
+
+<p>
+analyser.fftSize = POINTS * 2
+analyser.smoothingTimeConstant = FFTsampleRate / 100
+</p>
+
+<p>
+var bufferLength = analyser.frequencyBinCount
+var dataArray = new Uint8Array(bufferLength)
+</p>
+
+<p>
+function sample() {
+  analyser.getByteTimeDomainData(dataArray)
+  waveView.display(dataArray)
+</p>
+
+<p>
+analyser.getByteFrequencyData(dataArray)
+fft.display(dataArray)
+</p>
+
+<p>
+<i>/ var fdata = new Float32Array(analyser.fftSize)
+/</i> analyser.getFloatTimeDomainData(fdata)
+// let [pitch, clarity] = pitchy.findPitch(fdata, audioCtx.sampleRate)
+</p>
+
+<p>
+<i>/ var max = _.reduce(
+/</i>   dataArray.slice(0, 100),
+<i>/   (maxData, val, index) =&gt;
+/</i>     <i>/ @ts-ignore
+/</i>     maxData.val &gt; val ? maxData : { val: val, index: index },
+<i>/   {},
+/</i> )
+<i>/ const freq = Math.floor(
+/</i>   <i>/ @ts-ignore
+/</i>   (audioCtx.sampleRate / 2 / analyser.frequencyBinCount) * max.index,
+// )
+</p>
+
+<p>
+  <i>/ /</i> @ts-ignore
+  <i>/ if (max.val &gt; 200) {
+  /</i>   <i>/ @ts-ignore
+  /</i>   freqDisplay.innerHTML =
+  <i>/     /</i> @ts-ignore
+  <i>/     max.val +
+  /</i>     ' ' +
+  <i>/     freq +
+  /</i>     ' Hz ' +
+  <i>/     tone.Frequency(freq).toNote() +
+  /</i>     ' ' +
+  <i>/     tone.Frequency(pitch).toNote() +
+  /</i>     ' ' +
+  <i>/     clarity
+  /</i> } else {
+  <i>/   /</i> @ts-ignore
+  <i>/   freqDisplay.innerHTML = ''
+  /</i> }
+}
+</p>
+
+<p>
+      setInterval(sample, FFTsampleRate)
+    })
+}
+// const freqDisplay = document.querySelector('#freq')
+let fft: FFT
+let waveView: WaveView
+</p>
+
+<p>
+init()
+animate()
+audiotest()
+</p>
+</div>
+<div id="postamble" class="status">
+<p class="author">Author: Ivan Nikolic</p>
+<p class="date">Created: 2019-10-20 Sun 14:29</p>
+<p class="validation"><a href="http://validator.w3.org/check?uri=referer">Validate</a></p>
+</div>
+</body>
+</html>

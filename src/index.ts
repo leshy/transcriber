@@ -1,9 +1,12 @@
 import * as _ from 'lodash'
 import * as THREE from 'three'
+
 // @ts-ignore
 import * as tone from 'tone'
 // @ts-ignore
 import * as pitchy from 'pitchy'
+
+import { Line, SignalLine, SignalLineColor } from './lines'
 
 const POINTS = 256
 
@@ -13,163 +16,10 @@ const env: {
   scene?: THREE.Scene
 } = {}
 
-type MaterialOpts = {
-  linewidth?: number
-  color?: number
-}
-
-class SignalLine {
-  length: number
-  positions: Float32Array
-  public obj: THREE.Line
-  private geometry: THREE.BufferGeometry
-  private material: THREE.LineBasicMaterial
-  opts: { material: {} }
-
-  constructor(length: number, opts: { material?: MaterialOpts }) {
-    this.length = length
-    this.opts = this.initOpts(opts)
-
-    // geometry
-    const geometry = (this.geometry = new THREE.BufferGeometry())
-
-    // attributes
-    const positions = new Float32Array(length * 3)
-    this.positions = positions
-
-    _.times(length, (index: number) => {
-      positions[index * 3] = (1 / length) * index
-      positions[index * 3 + 1] = 0
-      positions[index * 3 + 2] = 0
-    })
-
-    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-    // draw range
-    geometry.setDrawRange(0, length - 1)
-
-    var material = (this.material = this.initMaterial(opts.material))
-    this.obj = new THREE.Line(geometry, material)
-  }
-
-  initMaterial(opts = {}) {
-    return new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      linewidth: 2,
-      ...opts,
-    })
-  }
-
-  initOpts(opts = {}) {
-    return {
-      material: {},
-      ...opts,
-    }
-  }
-
-  display(data: Uint8Array) {
-    _.times(this.length, index => {
-      const normalized = data[index] / 256 || 0
-      this.positions[index * 3 + 1] = normalized
-    })
-    // @ts-ignore
-    this.obj.geometry.attributes.position.needsUpdate = true
-  }
-
-  dispose() {
-    this.geometry.dispose()
-    this.material.dispose()
-  }
-}
-
-type Painter = (value: number) => [number, number, number]
-
-class SignalLineColor extends SignalLine {
-  private painter?: Painter
-
-  constructor(
-    length: number,
-    opts: { painter?: Painter; material?: MaterialOpts } = {},
-  ) {
-    super(length, opts)
-    this.painter = opts.painter
-  }
-
-  defaultPainter(value: number) {
-    const color = new THREE.Color()
-    color.setHSL(value, 0.9, value)
-    return [color.r, color.g, color.b]
-  }
-
-  display(data: Uint8Array) {
-    const colors: Array<number> = []
-
-    _.times(this.length, index => {
-      const normalized = data[index] / 256 || 0
-
-      this.positions[index * 3 + 1] = normalized
-      colors.push(
-        ...(this.painter
-          ? this.painter(normalized)
-          : this.defaultPainter(normalized)),
-      )
-    })
-
-    // @ts-ignore
-    this.obj.geometry.addAttribute(
-      'color',
-      new THREE.Float32BufferAttribute(colors, 3),
-    )
-
-    // @ts-ignore
-    this.obj.geometry.attributes.position.needsUpdate = true
-  }
-
-  initMaterial() {
-    return new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      linewidth: 2,
-      vertexColors: THREE.VertexColors,
-      ...this.opts.material,
-    })
-  }
-}
-
-class Line {
-  positions: Float32Array
-  public obj: THREE.Line
-  private opts: { material: {} }
-  constructor(
-    positions: Array<number>,
-    opts: { material: { color?: number } },
-  ) {
-    this.opts = {
-      material: {},
-      ...opts,
-    }
-
-    const geometry = new THREE.BufferGeometry()
-    geometry.addAttribute(
-      'position',
-      new THREE.BufferAttribute(
-        (this.positions = Float32Array.from(positions)),
-        3,
-      ),
-    )
-
-    var material = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      linewidth: 2,
-      ...this.opts.material,
-    })
-
-    this.obj = new THREE.Line(geometry, material)
-  }
-}
-
 class FFT {
   public obj: THREE.Object3D
   private _cutoff: number = 0.8
+  private _zoom: number = 1
 
   private history: FFThistory
   private signalLine: SignalLineColor
@@ -192,7 +42,9 @@ class FFT {
       material: { linewidth: 15 },
     })
 
-    this.signalLine.obj.scale.set(1, 3, 1)
+    this.signalLine.verbose = true
+
+    this.signalLine.obj.scale.set(1, 4, 1)
     this.signalLine.obj.translateY(-0.1)
     this.signalLine.obj.translateZ(0.05)
     this.obj.add(this.signalLine.obj)
@@ -209,29 +61,34 @@ class FFT {
     // )
 
     this.cutoffLine = new Line([0, 0, 0, 1, 0, 0], {
-      material: { color: 0xff0000 },
+      material: { color: 0xff0000, linewidth: 2 },
     })
 
     this.cutoffLine.obj.scale.set(1, 3, 5)
     this.cutoffLine.obj.translateY(this.cutoff * 3 - 0.1)
-
     this.obj.add(this.cutoffLine.obj)
   }
 
   set cutoff(newCutoff: number) {
-    console.log(newCutoff)
     this.cutoffLine.obj.position.set(0, newCutoff * 3, 0)
     this._cutoff = newCutoff
   }
 
+  set zoom(newZoom: number) {
+    this._zoom = this.history.zoom = this.signalLine.zoom = newZoom
+  }
+
   display(data: Uint8Array) {
+    this.signalLine.zoom = this._zoom
     this.signalLine.display(data)
+    this.history.zoom = this._zoom
     this.history.display(data)
   }
 }
 
 class FFThistory {
   public obj: THREE.Object3D
+  private _zoom: number = 1
   private signalLines: SignalLineColor[] = []
   private fft: FFT
 
@@ -244,8 +101,9 @@ class FFThistory {
     const signalLine = new SignalLineColor(POINTS, {
       painter: this.fft.painter.bind(this.fft),
     })
-    signalLine.obj.scale.set(1, 3, 1)
 
+    signalLine.obj.scale.set(1, 4, 1)
+    signalLine.zoom = this._zoom
     signalLine.display(data)
 
     if (this.signalLines.length > 100) {
@@ -264,6 +122,11 @@ class FFThistory {
     this.signalLines.push(signalLine)
     this.obj.add(signalLine.obj)
   }
+
+  set zoom(newZoom: number) {
+    this._zoom = newZoom
+    this.signalLines.forEach(signalLine => (signalLine.zoom = newZoom))
+  }
 }
 
 class WaveView {
@@ -275,8 +138,8 @@ class WaveView {
     this.linewave = new SignalLine(POINTS, {
       material: { color: 0xdddddd, linewidth: 5 },
     })
-    this.linewave.obj.scale.set(20, 2, 1)
-    this.linewave.obj.position.set(-10, 0, 0)
+    this.linewave.obj.scale.set(20, 8, 1)
+    this.linewave.obj.position.set(-10, -4, 0)
 
     this.obj.add(this.linewave.obj)
   }
@@ -306,8 +169,8 @@ function init() {
   waveView = new WaveView()
 
   fft = new FFT()
-
   setInterval(() => ((fft.cutoff = Math.abs(Math.sin(Date.now() / 1000))), 50))
+  setInterval(() => ((fft.zoom = Math.abs(Math.sin(Date.now() / 1314))), 50))
 
   fft.obj.scale.set(20, 1, 1)
   fft.obj.position.set(-10, -5, 0)
@@ -348,6 +211,8 @@ function audiotest() {
   navigator.mediaDevices
     .getUserMedia({ audio: true, video: false })
     .then(stream => {
+      const FFTsampleRate = 10
+
       // @ts-ignore
       var audioCtx = new (window.AudioContext || window.webkitAudioContext)()
       console.log(audioCtx.sampleRate / 2 + 'hz')
@@ -357,7 +222,7 @@ function audiotest() {
       source.connect(analyser)
 
       analyser.fftSize = POINTS * 2
-      analyser.smoothingTimeConstant = 0.5
+      analyser.smoothingTimeConstant = FFTsampleRate / 100
 
       var bufferLength = analyser.frequencyBinCount
       var dataArray = new Uint8Array(bufferLength)
@@ -369,47 +234,46 @@ function audiotest() {
         analyser.getByteFrequencyData(dataArray)
         fft.display(dataArray)
 
-        var fdata = new Float32Array(analyser.fftSize)
-        analyser.getFloatTimeDomainData(fdata)
-        let [pitch, clarity] = pitchy.findPitch(fdata, audioCtx.sampleRate)
+        // var fdata = new Float32Array(analyser.fftSize)
+        // analyser.getFloatTimeDomainData(fdata)
+        // let [pitch, clarity] = pitchy.findPitch(fdata, audioCtx.sampleRate)
 
-        var max = _.reduce(
-          dataArray.slice(0, 100),
-          (maxData, val, index) =>
-            // @ts-ignore
-            maxData.val > val ? maxData : { val: val, index: index },
-          {},
-        )
-        const freq = Math.floor(
-          // @ts-ignore
-          (audioCtx.sampleRate / 2 / analyser.frequencyBinCount) * max.index,
-        )
+        // var max = _.reduce(
+        //   dataArray.slice(0, 100),
+        //   (maxData, val, index) =>
+        //     // @ts-ignore
+        //     maxData.val > val ? maxData : { val: val, index: index },
+        //   {},
+        // )
+        // const freq = Math.floor(
+        //   // @ts-ignore
+        //   (audioCtx.sampleRate / 2 / analyser.frequencyBinCount) * max.index,
+        // )
 
-        // @ts-ignore
-        if (max.val > 200) {
-          // @ts-ignore
-          freqDisplay.innerHTML =
-            // @ts-ignore
-            max.val +
-            ' ' +
-            freq +
-            ' Hz ' +
-            tone.Frequency(freq).toNote() +
-            ' ' +
-            tone.Frequency(pitch).toNote() +
-            ' ' +
-            clarity
-        } else {
-          // @ts-ignore
-          freqDisplay.innerHTML = ''
-        }
+        // // @ts-ignore
+        // if (max.val > 200) {
+        //   // @ts-ignore
+        //   freqDisplay.innerHTML =
+        //     // @ts-ignore
+        //     max.val +
+        //     ' ' +
+        //     freq +
+        //     ' Hz ' +
+        //     tone.Frequency(freq).toNote() +
+        //     ' ' +
+        //     tone.Frequency(pitch).toNote() +
+        //     ' ' +
+        //     clarity
+        // } else {
+        //   // @ts-ignore
+        //   freqDisplay.innerHTML = ''
+        // }
       }
 
-      setInterval(sample, 20)
+      setInterval(sample, FFTsampleRate)
     })
 }
-
-const freqDisplay = document.querySelector('#freq')
+// const freqDisplay = document.querySelector('#freq')
 let fft: FFT
 let waveView: WaveView
 
