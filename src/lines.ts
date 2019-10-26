@@ -3,7 +3,8 @@ import * as THREE from 'three'
 
 export type LineOpts = {
   material?: MaterialOpts
-  zoom?: number
+  scaleX?: number
+  scaleY?: number
 }
 
 export type MaterialOpts = {
@@ -44,7 +45,8 @@ export class SignalLine {
   length: number
   positions: Float32Array
 
-  public _zoom: number = 1
+  public _scaleX: number = 1
+  public _scaleY: number = 1
   public obj: THREE.Object3D
   public line: THREE.Line
   public verbose: boolean = false
@@ -81,8 +83,14 @@ export class SignalLine {
     this.obj.add((this.line = new THREE.Line(geometry, material)))
   }
 
-  set zoom(newZoom: number) {
-    this._zoom = newZoom
+  set scaleX(newScale: number) {
+    this._scaleX = newScale
+    this.resize()
+  }
+
+  set scaleY(newScale: number) {
+    this._scaleY = newScale
+    this.resize()
   }
 
   initMaterial(opts = {}) {
@@ -101,13 +109,8 @@ export class SignalLine {
   }
 
   display(data: Uint8Array) {
-    const zoomedLength = Math.round(this.length * this._zoom)
-
     // @ts-ignore
-    this.line.geometry.setDrawRange(0, zoomedLength - 1)
-    this.line.scale.set(1 / this._zoom, 1, 1)
-
-    _.times(zoomedLength, index => {
+    _.times(this.length, index => {
       const normalized = data[index] / 256 || 0
       this.positions[index * 3 + 1] = normalized
     })
@@ -118,6 +121,13 @@ export class SignalLine {
   dispose() {
     this.geometry.dispose()
     this.material.dispose()
+  }
+
+  resize() {
+    const zoomedLength = Math.round(this.length * this._scaleX)
+    // @ts-ignore
+    this.line.geometry.setDrawRange(0, zoomedLength - 1)
+    this.line.scale.set(1 / this._scaleX, this._scaleY * 2, 1)
   }
 }
 
@@ -138,16 +148,14 @@ export class SignalLineColor extends SignalLine {
     return [color.r, color.g, color.b]
   }
 
-  set zoom(newZoom: number) {
-    this._zoom = newZoom
+  set scaleX(newScale: number) {
+    this._scaleX = newScale
     this.resize()
   }
 
-  resize() {
-    const zoomedLength = Math.round(this.length * this._zoom)
-    // @ts-ignore
-    this.line.geometry.setDrawRange(0, zoomedLength - 1)
-    this.line.scale.set(1 / this._zoom, 1, 1)
+  set scaleY(newScale: number) {
+    this._scaleY = newScale
+    this.resize()
   }
 
   display(data: Uint8Array) {

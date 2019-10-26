@@ -3862,6 +3862,11 @@ istanbul-reports@^2.2.6:
   dependencies:
     handlebars "^4.1.2"
 
+jazz-midi@^1.7.0:
+  version "1.7.0"
+  resolved "https://registry.yarnpkg.com/jazz-midi/-/jazz-midi-1.7.0.tgz#2a996bccccd9635600f2480142ee8d987bdb0f98"
+  integrity sha512-9t1Hpc89HQB8oxDPZaWSSjSWEfVJAhnd4t66HUUAIFpps3JLT/Czs0/tOtnAwPSiAzAUUfcbGZpbr5kEqOLf+w==
+
 jest-changed-files@^24.9.0:
   version "24.9.0"
   resolved "https://registry.yarnpkg.com/jest-changed-files/-/jest-changed-files-24.9.0.tgz#08d8c15eb79a7fa3fc98269bc14b451ee82f8039"
@@ -4376,6 +4381,13 @@ jsx-ast-utils@^2.2.1:
   dependencies:
     array-includes "^3.0.3"
     object.assign "^4.1.0"
+
+jzz@^0.8.7:
+  version "0.8.9"
+  resolved "https://registry.yarnpkg.com/jzz/-/jzz-0.8.9.tgz#99efc6cb49644c542c659cfc927c8fd79283a0f4"
+  integrity sha512-R18OGWHL9NDsNFWTMtE+4Mky/FJwA67YNIJ+bbdoFY3xz/DIQtghSSkGV2W/iCqYoV17FV5mzRocDxgJ7/QTfw==
+  dependencies:
+    jazz-midi "^1.7.0"
 
 kind-of@^3.0.2, kind-of@^3.0.3, kind-of@^3.2.0:
   version "3.2.2"
@@ -7168,6 +7180,13 @@ wcwidth@^1.0.1:
   integrity sha1-8LDc+RW8X/FSivrbLA4XtTLaL+g=
   dependencies:
     defaults "^1.0.3"
+
+web-midi-api@^2.0.6:
+  version "2.0.6"
+  resolved "https://registry.yarnpkg.com/web-midi-api/-/web-midi-api-2.0.6.tgz#fd5647cb4b9647429d1794a6c8bfef3f216d4a97"
+  integrity sha512-ngsQ734SUDlnKlD9g6cDPhX9ZO8nrA0jl7qZ/z1asUBusZBRGatevxjoF8cPPANG61cvy6Iq/c6iL0CCi32vlw==
+  dependencies:
+    jzz "^0.8.7"
 
 webidl-conversions@^4.0.2:
   version "4.0.2"

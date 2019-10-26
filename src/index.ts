@@ -1,12 +1,14 @@
 import * as _ from 'lodash'
 import * as THREE from 'three'
-
 // @ts-ignore
 import * as tone from 'tone'
 // @ts-ignore
 import * as pitchy from 'pitchy'
 
-import { Line, SignalLine, SignalLineColor } from './lines'
+import { SignalLine } from './lines'
+import { FFT } from './fft'
+
+//import * as midi from 'web-midi-api'
 
 const POINTS = 256
 
@@ -16,119 +18,6 @@ const env: {
   scene?: THREE.Scene
 } = {}
 
-class FFT {
-  public obj: THREE.Object3D
-  private _cutoff: number = 0.8
-  private _zoom: number = 1
-
-  private history: FFThistory
-  private signalLine: SignalLineColor
-  private cutoffLine: Line
-
-  painter(value: number): [number, number, number] {
-    if (value > this._cutoff) {
-      return [1, 0, 0]
-    }
-    const color = new THREE.Color()
-    color.setHSL(value, 0.9, value)
-    return [color.r, color.g, color.b]
-  }
-
-  constructor() {
-    this.obj = new THREE.Object3D()
-
-    this.signalLine = new SignalLineColor(POINTS, {
-      painter: this.painter.bind(this),
-      material: { linewidth: 15 },
-    })
-
-    this.signalLine.verbose = true
-
-    this.signalLine.obj.scale.set(1, 4, 1)
-    this.signalLine.obj.translateY(-0.1)
-    this.signalLine.obj.translateZ(0.05)
-    this.obj.add(this.signalLine.obj)
-
-    this.history = new FFThistory(this)
-    this.obj.add(this.history.obj)
-
-    // this.obj.add(
-    //   new Line([0, 0, 0, 1, 0, 0, 1, 10, -5, 0, 10, -5, 0, 0, 0], {
-    //     material: {
-    //       color: 0x555555,
-    //     },
-    //   }).obj,
-    // )
-
-    this.cutoffLine = new Line([0, 0, 0, 1, 0, 0], {
-      material: { color: 0xff0000, linewidth: 2 },
-    })
-
-    this.cutoffLine.obj.scale.set(1, 3, 5)
-    this.cutoffLine.obj.translateY(this.cutoff * 3 - 0.1)
-    this.obj.add(this.cutoffLine.obj)
-  }
-
-  set cutoff(newCutoff: number) {
-    this.cutoffLine.obj.position.set(0, newCutoff * 3, 0)
-    this._cutoff = newCutoff
-  }
-
-  set zoom(newZoom: number) {
-    this._zoom = this.history.zoom = this.signalLine.zoom = newZoom
-  }
-
-  display(data: Uint8Array) {
-    this.signalLine.zoom = this._zoom
-    this.signalLine.display(data)
-    this.history.zoom = this._zoom
-    this.history.display(data)
-  }
-}
-
-class FFThistory {
-  public obj: THREE.Object3D
-  private _zoom: number = 1
-  private signalLines: SignalLineColor[] = []
-  private fft: FFT
-
-  constructor(fft: FFT) {
-    this.fft = fft
-    this.obj = new THREE.Object3D()
-  }
-
-  display(data: Uint8Array) {
-    const signalLine = new SignalLineColor(POINTS, {
-      painter: this.fft.painter.bind(this.fft),
-    })
-
-    signalLine.obj.scale.set(1, 4, 1)
-    signalLine.zoom = this._zoom
-    signalLine.display(data)
-
-    if (this.signalLines.length > 100) {
-      const toDelete = this.signalLines.shift()
-      if (toDelete) {
-        this.obj.remove(toDelete.obj)
-        toDelete.dispose()
-      }
-    }
-
-    _.each(this.signalLines, line => {
-      line.obj.translateY(0.1)
-      line.obj.translateZ(-0.05)
-    })
-
-    this.signalLines.push(signalLine)
-    this.obj.add(signalLine.obj)
-  }
-
-  set zoom(newZoom: number) {
-    this._zoom = newZoom
-    this.signalLines.forEach(signalLine => (signalLine.zoom = newZoom))
-  }
-}
-
 class WaveView {
   public obj: THREE.Object3D
   private linewave: SignalLine
@@ -136,7 +25,7 @@ class WaveView {
     this.obj = new THREE.Object3D()
 
     this.linewave = new SignalLine(POINTS, {
-      material: { color: 0xdddddd, linewidth: 5 },
+      material: { color: 0xdddddd, linewidth: 2 },
     })
     this.linewave.obj.scale.set(20, 8, 1)
     this.linewave.obj.position.set(-10, -4, 0)
@@ -169,9 +58,12 @@ function init() {
   waveView = new WaveView()
 
   fft = new FFT()
-  setInterval(() => ((fft.cutoff = Math.abs(Math.sin(Date.now() / 1000))), 50))
-  setInterval(() => ((fft.zoom = Math.abs(Math.sin(Date.now() / 1314))), 50))
+  // setInterval(() => ((fft.cutoff = Math.abs(Math.sin(Date.now() / 1000))), 50))
+  // setInterval(
+  //   () => ((fft.zoom = 0.2 + Math.abs(Math.sin(Date.now() / 1314)) * 0.8), 50),
+  // )
 
+  fft.scaleX = 1
   fft.obj.scale.set(20, 1, 1)
   fft.obj.position.set(-10, -5, 0)
 
@@ -185,6 +77,34 @@ function init() {
   env.renderer.setSize(window.innerWidth, window.innerHeight)
   // @ts-ignore
   document.body.appendChild(env.renderer.domElement)
+
+  // @ts-ignore
+  navigator.requestMIDIAccess().then(m => {
+    console.log('midi', m)
+    // @ts-ignore
+    const midiIn = m.inputs.values().next().value
+    // @ts-ignore
+    console.log('midiIn', (window.midiIn = midiIn))
+    // @ts-ignore
+    midiIn.onmidimessage = midiEvent => {
+      // @ts-ignore
+      const [eventType, channel, value] = midiEvent.data
+      if (eventType != 176) {
+        return
+      }
+      console.log('midi', channel, value)
+
+      if (channel === 1) {
+        fft.scaleX = 1 - value / 128
+      }
+      if (channel === 2) {
+        fft.scaleY = value / 128
+      }
+      if (channel === 3) {
+        fft.cutoff = 1 - value / 128
+      }
+    }
+  })
 }
 
 window.addEventListener('resize', onWindowResize, false)
@@ -211,7 +131,7 @@ function audiotest() {
   navigator.mediaDevices
     .getUserMedia({ audio: true, video: false })
     .then(stream => {
-      const FFTsampleRate = 10
+      const FFTsampleRate = 20
 
       // @ts-ignore
       var audioCtx = new (window.AudioContext || window.webkitAudioContext)()
@@ -222,7 +142,7 @@ function audiotest() {
       source.connect(analyser)
 
       analyser.fftSize = POINTS * 2
-      analyser.smoothingTimeConstant = FFTsampleRate / 100
+      analyser.smoothingTimeConstant = 0.7
 
       var bufferLength = analyser.frequencyBinCount
       var dataArray = new Uint8Array(bufferLength)
@@ -234,46 +154,38 @@ function audiotest() {
         analyser.getByteFrequencyData(dataArray)
         fft.display(dataArray)
 
-        // var fdata = new Float32Array(analyser.fftSize)
-        // analyser.getFloatTimeDomainData(fdata)
-        // let [pitch, clarity] = pitchy.findPitch(fdata, audioCtx.sampleRate)
+        var fdata = new Float32Array(analyser.fftSize)
+        analyser.getFloatTimeDomainData(fdata)
+        let [pitch] = pitchy.findPitch(fdata, audioCtx.sampleRate)
 
-        // var max = _.reduce(
-        //   dataArray.slice(0, 100),
-        //   (maxData, val, index) =>
-        //     // @ts-ignore
-        //     maxData.val > val ? maxData : { val: val, index: index },
-        //   {},
-        // )
+        var max = _.reduce(
+          dataArray.slice(0, 100),
+          (maxData, val, index) =>
+            // @ts-ignore
+            maxData.val > val ? maxData : { val: val, index: index },
+          {},
+        )
         // const freq = Math.floor(
         //   // @ts-ignore
         //   (audioCtx.sampleRate / 2 / analyser.frequencyBinCount) * max.index,
         // )
 
-        // // @ts-ignore
-        // if (max.val > 200) {
-        //   // @ts-ignore
-        //   freqDisplay.innerHTML =
-        //     // @ts-ignore
-        //     max.val +
-        //     ' ' +
-        //     freq +
-        //     ' Hz ' +
-        //     tone.Frequency(freq).toNote() +
-        //     ' ' +
-        //     tone.Frequency(pitch).toNote() +
-        //     ' ' +
-        //     clarity
-        // } else {
-        //   // @ts-ignore
-        //   freqDisplay.innerHTML = ''
-        // }
+        // @ts-ignore
+        if (max.val > 200) {
+          // @ts-ignore
+          freqDisplay.innerHTML =
+            // @ts-ignore
+            tone.Frequency(pitch).toNote()
+        } else {
+          // @ts-ignore
+          freqDisplay.innerHTML = ''
+        }
       }
 
       setInterval(sample, FFTsampleRate)
     })
 }
-// const freqDisplay = document.querySelector('#freq')
+const freqDisplay = document.querySelector('#freq')
 let fft: FFT
 let waveView: WaveView
 
